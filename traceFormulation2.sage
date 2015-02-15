@@ -1,5 +1,6 @@
 I = CC.0 # imaginary unit
 R.<q> = LaurentSeriesRing(QQ)
+R.<x> = LaurentSeriesRing(CC)
 
 def pair(z):
 	w = floor((sqrt(8*z+1) - 1)/2)
@@ -30,6 +31,9 @@ def reduce_form(Q,N):
 			k = floor((a-b)/(2*a))
 			M = M*(T^k)
 			Q = Q.matrix_action_right(T^k)
+		else:
+			print(Q)
+			raise Exception("Stuck...")
 	if N == 1:
 		return Q,M
 	else:
@@ -38,9 +42,8 @@ def reduce_form(Q,N):
 			r = matrix(2,[ r[0,0],r[0,1],r[1,0],r[1,1] ])
 			M_ = M*r
 			if mod(M_[1,0],N) == 0:
-				return Q.matrix_action_right(r),M*r
-		else:
-			print("ERROR!")
+				return Q.matrix_action_right(r),M_
+		raise Exception("??")
 
 def is_equiv(Q1,Q2,N):
 	Q1,M1 = reduce_form(Q1,N)
@@ -59,12 +62,14 @@ def gen_quad_reps(D,N):
 	if N == 1:
 		return reps
 	else:
+		#cos_reps = list(Gamma0(N).coset_reps())
 		cos_reps = map(lambda g:~g,list(Gamma0(N).coset_reps()))
 		cos_reps = map(lambda x: matrix(2,[[x[0][0],x[0][1]],[x[1][0],x[1][1]]]), cos_reps)
 		new_reps = []
 		for q_ in reps:
 			for g in cos_reps:
 				new_reps.append(q_.matrix_action_right(g))
+		#return new_reps
 		return removeDups(lambda Q1,Q2: is_equiv(Q1,Q2,N), new_reps)
 
 def eval_form(q_,p):
@@ -87,13 +92,24 @@ def chi(q_,D1):
 safety_set = [id,T,T^(-1)]
 
 elliptic_points = {}
+# N=3
 n3o3 = ((1/2) + (1/6)*sqrt(-3)).n()
+
+# N=5
 n5o2_1 = ((2/5) + (1/5)*sqrt(-1)).n()
 n5o2_2 = ((3/5) + (1/5)*sqrt(-1)).n()
+
+# N=7
+n7o3_1 = ((5/14) + (1/14)*sqrt(-3)).n()
+n7o3_2 = ((9/14) + (1/14)*sqrt(-3)).n()
+
+# N=31
 n31o3_1 = ((11/62) + (1/62)*sqrt(-3)).n()
 n31o3_2 = ((17/62) + (1/186)*sqrt(-3)).n()
+
 elliptic_points[3] = ([],[n3o3,n3o3+1,n3o3-1])
 elliptic_points[5] = ([ n5o2_1,n5o2_1+1,n5o2_1-1,n5o2_2,n5o2_2+1,n5o2_2-1],[])
+elliptic_points[7] = ([ n7o3_1, n7o3_1+1, n7o3_1-1, n7o3_2, n7o3_2-1,n7o3_2+1 ], [])
 elliptic_points[31] = ([], [n31o3_1,n31o3_1+1,n31o3_1-1,n31o3_2,n31o3_2+1,n31o3_2-1])
 
 
@@ -132,3 +148,10 @@ def tr(N,D1,f,D2):
 			tau = q_.complex_point()
 			trace = trace + (chi(q_,D1)*f(tau))/omega(q_,N)
 	return trace
+
+def get_expansion(N,f):
+	result = 1*x^(-3)
+	for i in range(1,8):
+		if mod(i,4) == 1 or mod(i,4) == 0 and (not i==5):
+			result = result + ((tr(N,-3,f,i)/sqrt(i)).n())*x^i
+	return result
